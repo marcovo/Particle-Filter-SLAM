@@ -64,8 +64,8 @@ mapfig = drawMap(particles[0, :], posX_map[0], posY_map[0], mapfig)
 
 pose_p, yaw_p = lid_p['pose'], rpy_p[0, 2]
 timeline = len(lid)
-for i in xrange(1, timeline):
-	print "{0}/{1}".format(i,timeline)
+for i in range(1, timeline):
+	print("{0}/{1}".format(i,timeline))
 	lid_c = lid[i]
 	pose_c, rpy_c = lid_c['pose'], lid_c['rpy']
 	yaw_c = rpy_c[0, 2]
@@ -102,8 +102,8 @@ for i in xrange(1, timeline):
 		corr_cur = maput.mapCorrelation(mapfig['map'], x_im, y_im, Y[0 : 3, :], x_range, y_range)
 		ind = np.argmax(corr_cur)
 
-		corr[i] = corr_cur[ind / 3, ind % 3]
-		particles[i, 0] += x_range[ind / 3]
+		corr[i] = corr_cur[ind // 3, ind % 3]
+		particles[i, 0] += x_range[ind // 3]
 		particles[i, 1] += y_range[ind % 3]
 
 	wtmp = np.log(weight) + corr
@@ -149,5 +149,6 @@ for i in xrange(1, timeline):
 	#im.axes.figure.canvas.draw()
 
 fig1 = plt.figure(1)
+mapfig['show_map'][mapfig['show_map'] == 255.0] = 1.0
 plt.imshow(mapfig['show_map'], cmap = "hot")
 plt.show()

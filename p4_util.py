@@ -17,7 +17,7 @@ def replay_lidar(lidar_data):
 	# lidar_data type: array where each array is a dictionary with a form of 't','pose','res','rpy','scan'
 	theta = np.arange(0,270.25,0.25)*np.pi/float(180)
 
-	for i in xrange(200,len(lidar_data),10):
+	for i in range(200,len(lidar_data),10):
 		for (k,v) in enumerate(lidar_data[i]['scan'][0]):
 			if v > 30:
 				lidar_data[i]['scan'][0][k] = 0.0
@@ -39,10 +39,10 @@ def replay_lidar(lidar_data):
 def replay_depth(depth_data):
 	DEPTH_MAX = 4500
 	DEPTH_MIN = 400	
-	for k in xrange(len(depth_data)):
+	for k in range(len(depth_data)):
 		D = depth_data[k]['depth']
 		D = np.flip(D,1)
-		for r in xrange(len(D)):
+		for r in range(len(D)):
 			for (c,v) in enumerate(D[r]):
 				if (v<=DEPTH_MIN) or (v>=DEPTH_MAX):
 					D[r][c] = 0.0
@@ -52,7 +52,7 @@ def replay_depth(depth_data):
 		plt.pause(0.001)
 
 def replay_rgb(rgb_data):
-	for k in xrange(len(rgb_data)):
+	for k in range(len(rgb_data)):
 		R = rgb_data[k]['image']
 		R = np.flip(R,1)
 
