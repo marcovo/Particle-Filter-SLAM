@@ -52,6 +52,8 @@ x and y positions for the map are generated.
 """
 pos_phy, posX_map, posY_map = {}, {}, {}
 
+path = []
+
 factor = np.array([1, 1, 10])
 
 x_im = np.arange(mapfig['xmin'], mapfig['xmax'] + mapfig['res'], mapfig['res'])  # x-positions of each pixel of the map
@@ -153,6 +155,7 @@ for i in range(1, timeline):
     x_r = (np.ceil((particles[ind_best, 0] - mapfig['xmin']) / mapfig['res']).astype(np.int16) - 1)
     y_r = (np.ceil((particles[ind_best, 1] - mapfig['xmin']) / mapfig['res']).astype(np.int16) - 1)
     mapfig['show_map'][x_r, y_r, 0] = 255
+    path.append([x_r, y_r])
 
     mapfig = drawMap(particles[ind_best, :], posX_map[ind_best], posY_map[ind_best], mapfig)
 
@@ -174,7 +177,7 @@ for i in range(1, timeline):
                 i = i + 1
                 c = c + weight[i]
 
-        particle_New[m, :] = particles[i, :]
+            particle_New[m, :] = particles[i, :]
         particles = particle_New
         
         weight = np.einsum('..., ...', 1.0 / N, np.ones((N, 1)))
@@ -182,6 +185,9 @@ for i in range(1, timeline):
     #ax.imshow(mapfig['show_map'], cmap = "hot")
     #im.set_data(mapfig['show_map'])
     #im.axes.figure.canvas.draw()
+
+for path_pos in path:
+    mapfig['show_map'][path_pos[0], path_pos[1]] = [0.0, 1.0, 1.0]
 
 fig1 = plt.figure(1)
 mapfig['show_map'][mapfig['show_map'] == 255.0] = 1.0
