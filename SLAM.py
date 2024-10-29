@@ -1,6 +1,10 @@
 """
 Imports and Data Loading
 """
+import json
+import os
+import sys
+
 import load_data as ld
 import numpy as np
 from SLAM_helper import *
@@ -9,11 +13,15 @@ import MapUtils as maput
 import cv2
 import random
 
+def get_argv(pos: int, default):
+    return sys.argv[pos] if len(sys.argv) > pos else default
 
 ####Dataset####
 
-joint = ld.get_joint("data/train_joint3")
-lid = ld.get_lidar("data/train_lidar3")
+dataset = get_argv(2, 3)
+
+joint = ld.get_joint(f"data/train_joint{dataset}")
+lid = ld.get_lidar(f"data/train_lidar{dataset}")
 
 itv = 1 # of skip in drawing maps
 
@@ -27,12 +35,22 @@ A map configuration is set up, including resolution, size, and initial values fo
 """
 angles = np.array([np.arange(-135, 135.25, 0.25) * np.pi / 180.0])
 
-N, N_threshold = 100, 35
+base = 2
+N = int(get_argv(base + 1, 100))
+N_threshold = int(get_argv(base + 2, 35))
+res_scale = float(get_argv(base + 3, 1))
+art_noise_pos = float(get_argv(base + 4, 1))
+art_noise_yaw = float(get_argv(base + 5, 10))
+lidar_noise_perc = float(get_argv(base + 6, 0))
+
+directory = get_argv(1, None)
+file_basename = f'N{N}_Nt{N_threshold}_res{res_scale}_art{art_noise_pos}_{art_noise_yaw}_lid{lidar_noise_perc}'.replace('.', 'o')
+
 particles = np.zeros((N, 3))
 weight = np.einsum('..., ...', 1.0 / N, np.ones((N, 1)))
 
 mapfig = {}
-mapfig['res'] = 0.05
+mapfig['res'] = 0.05 / res_scale
 mapfig['xmin'] = -40
 mapfig['ymin'] = -40
 mapfig['xmax'] = 40
@@ -54,7 +72,7 @@ pos_phy, posX_map, posY_map = {}, {}, {}
 
 path = []
 
-factor = np.array([1, 1, 10])
+factor = np.array([art_noise_pos, art_noise_pos, art_noise_yaw])
 
 x_im = np.arange(mapfig['xmin'], mapfig['xmax'] + mapfig['res'], mapfig['res'])  # x-positions of each pixel of the map
 y_im = np.arange(mapfig['ymin'], mapfig['ymax'] + mapfig['res'], mapfig['res'])  # y-positions of each pixel of the map
@@ -90,6 +108,7 @@ mapfig = drawMap(particles[0, :], posX_map[0], posY_map[0], mapfig)
 
 pose_p, yaw_p = lid_p['pose'], rpy_p[0, 2]
 
+timeline_log = []
 
 """
 Main loop
@@ -122,7 +141,7 @@ for i in range(1, timeline):
     noise = np.einsum('..., ...', factor, np.random.normal(0, 1e-3, (N, 1)))
     particles = particles + ut + noise
 
-    scan_c = lid_c['scan']
+    scan_c = lid_c['scan'] + lidar_noise_perc * np.random.normal(0, 1e-3, lid_c['scan'].shape)
     ind_i = np.argmin(np.absolute(ts - lid_c['t'][0][0]))
     pos_phy, posX_map, posY_map = mapConvert(scan_c, rpy_robot[:, ind_i], h_angle[:, ind_i], angles, particles, N, pos_phy, posX_map, posY_map, mapfig)
 
@@ -163,7 +182,17 @@ for i in range(1, timeline):
 
     # Resampling
     N_eff = 1 / np.sum(np.square(weight))
-    if N_eff < N_threshold:
+    resample = N_eff < N_threshold * N / 100
+    timeline_log.append({
+        "i": i,
+        "best_pos": [x_r, y_r],
+        "weight": weight[ind_best],
+        "mean_weight": np.mean(weight),
+        "Neff": N_eff,
+        "resample": resample,
+    })
+
+    if resample:
         #particles = resample(N, weight, particles)
 
         particle_New = np.zeros((N, 3))
@@ -186,10 +215,17 @@ for i in range(1, timeline):
     #im.set_data(mapfig['show_map'])
     #im.axes.figure.canvas.draw()
 
+if directory is not None:
+    json.dump(timeline_log, open(os.path.join(directory, f"{file_basename}_data.json"), 'w'))
+
 for path_pos in path:
     mapfig['show_map'][path_pos[0], path_pos[1]] = [0.0, 1.0, 1.0]
 
 fig1 = plt.figure(1)
 mapfig['show_map'][mapfig['show_map'] == 255.0] = 1.0
 plt.imshow(mapfig['show_map'], cmap = "hot")
-plt.show()
+
+if directory is not None:
+    plt.savefig(os.path.join(directory, f"{file_basename}_map.png"))
+else:
+    plt.show()
