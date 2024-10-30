@@ -44,7 +44,7 @@ art_noise_yaw = float(get_argv(base + 5, 10))
 lidar_noise_perc = float(get_argv(base + 6, 0))
 
 directory = get_argv(1, None)
-file_basename = f'N{N}_Nt{N_threshold}_res{res_scale}_art{art_noise_pos}_{art_noise_yaw}_lid{lidar_noise_perc}'.replace('.', 'o')
+file_basename = f'ds{dataset}_N{N}_Nt{N_threshold}_res{res_scale}_art{art_noise_pos}_{art_noise_yaw}_lid{lidar_noise_perc}'.replace('.', 'o')
 
 particles = np.zeros((N, 3))
 weight = np.einsum('..., ...', 1.0 / N, np.ones((N, 1)))
@@ -88,8 +88,9 @@ fig = plt.figure(1)
 ax = fig.add_subplot(111)
 ax.set_title("SLAM Map")
 
-im = ax.imshow(mapfig['show_map'], cmap = "hot")
-fig.show()
+if directory is None:
+    im = ax.imshow(mapfig['show_map'], cmap = "hot")
+    fig.show()
 
 
 """
@@ -115,9 +116,13 @@ Main loop
 This loop iterates through the lidar scans to update particle positions and map.
 """
 timeline = len(lid)
-for i in range(1, timeline):
-    print("{0}/{1}".format(i,timeline))
-    lid_c = lid[i]
+for timeframe in range(1, timeline):
+    progress = "{0}/{1}".format(timeframe,timeline)
+    if directory is None:
+        print(progress)
+    else:
+        sys.stdout.write(progress + "\r")
+    lid_c = lid[timeframe]
     pose_c, rpy_c = lid_c['pose'], lid_c['rpy']
     yaw_c = rpy_c[0, 2]
 
@@ -141,7 +146,9 @@ for i in range(1, timeline):
     noise = np.einsum('..., ...', factor, np.random.normal(0, 1e-3, (N, 1)))
     particles = particles + ut + noise
 
-    scan_c = lid_c['scan'] + lidar_noise_perc * np.random.normal(0, 1e-3, lid_c['scan'].shape)
+    scan_c = lid_c['scan']
+    if lidar_noise_perc > 0:
+        scan_c = scan_c + lidar_noise_perc * np.random.normal(0, 1e-3, lid_c['scan'].shape)
     ind_i = np.argmin(np.absolute(ts - lid_c['t'][0][0]))
     pos_phy, posX_map, posY_map = mapConvert(scan_c, rpy_robot[:, ind_i], h_angle[:, ind_i], angles, particles, N, pos_phy, posX_map, posY_map, mapfig)
 
@@ -184,12 +191,12 @@ for i in range(1, timeline):
     N_eff = 1 / np.sum(np.square(weight))
     resample = N_eff < N_threshold * N / 100
     timeline_log.append({
-        "i": i,
-        "best_pos": [x_r, y_r],
-        "weight": weight[ind_best],
-        "mean_weight": np.mean(weight),
+        "t": timeframe,
+        "best_pos": [int(x_r), int(y_r)],
+        "weight": float(weight[ind_best][0]),
+        "num_high_weight": int(np.sum(weight > 0.8 * weight[ind_best])),
         "Neff": N_eff,
-        "resample": resample,
+        "resample": bool(resample),
     })
 
     if resample:
@@ -216,7 +223,7 @@ for i in range(1, timeline):
     #im.axes.figure.canvas.draw()
 
 if directory is not None:
-    json.dump(timeline_log, open(os.path.join(directory, f"{file_basename}_data.json"), 'w'))
+    json.dump(timeline_log, open(os.path.join(directory, f"{file_basename}_data.json"), 'w'), indent=2)
 
 for path_pos in path:
     mapfig['show_map'][path_pos[0], path_pos[1]] = [0.0, 1.0, 1.0]
@@ -229,3 +236,5 @@ if directory is not None:
     plt.savefig(os.path.join(directory, f"{file_basename}_map.png"))
 else:
     plt.show()
+
+print(f'Done: {file_basename}')
