@@ -30,6 +30,8 @@ itv = 1 # of skip in drawing maps
 
 ###############
 
+np.random.seed(0)
+random.seed(1)
 
 """
 Initial Setup
