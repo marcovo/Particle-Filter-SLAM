@@ -49,7 +49,7 @@ art_noise_yaw = float(get_argv(base + 5, 10))
 lidar_noise_perc = float(get_argv(base + 6, 0))
 
 directory = get_argv(1, None)
-file_basename = f'ds{dataset}_N{N}_Nt{N_threshold}_res{res_scale}_art{art_noise_pos}_{art_noise_yaw}_lid{lidar_noise_perc}'.replace('.', 'o')
+file_basename = f'ds{dataset}_N{N}_Nt{N_threshold}_res{res_scale}_art{art_noise_pos}_{art_noise_yaw}_lid{lidar_noise_perc}'
 
 particles = np.zeros((N, 3))
 weight = np.einsum('..., ...', 1.0 / N, np.ones((N, 1)))
