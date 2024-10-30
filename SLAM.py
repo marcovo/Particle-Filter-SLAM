@@ -2,8 +2,11 @@
 Imports and Data Loading
 """
 import json
+import math
 import os
 import sys
+
+from PIL import Image
 
 import load_data as ld
 import numpy as np
@@ -225,16 +228,18 @@ for timeframe in range(1, timeline):
 if directory is not None:
     json.dump(timeline_log, open(os.path.join(directory, f"{file_basename}_data.json"), 'w'), indent=2)
 
-for path_pos in path:
-    mapfig['show_map'][path_pos[0], path_pos[1]] = [0.0, 1.0, 1.0]
+for i in range(len(path)):
+    path_pos = path[i]
+    mapfig['show_map'][path_pos[0], path_pos[1]] = [0.0, math.sqrt(1 - i / len(path)), 1.0]
 
-fig1 = plt.figure(1)
 mapfig['show_map'][mapfig['show_map'] == 255.0] = 1.0
-plt.imshow(mapfig['show_map'], cmap = "hot")
 
 if directory is not None:
-    plt.savefig(os.path.join(directory, f"{file_basename}_map.png"))
+    image = np.array(mapfig['show_map'] * 255).astype(np.uint8)
+    Image.fromarray(image).save(os.path.join(directory, f"{file_basename}_map.png"))
 else:
+    fig1 = plt.figure(1)
+    plt.imshow(mapfig['show_map'], cmap = "hot")
     plt.show()
 
 print(f'Done: {file_basename}')
