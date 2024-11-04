@@ -47,9 +47,10 @@ res_scale = float(get_argv(base + 3, 1))
 art_noise_pos = float(get_argv(base + 4, 1))
 art_noise_yaw = float(get_argv(base + 5, 10))
 lidar_noise_perc = float(get_argv(base + 6, 0))
+corr_scale = float(get_argv(base + 7, 1))
 
 directory = get_argv(1, None)
-file_basename = f'ds{dataset}_N{N}_Nt{N_threshold}_res{res_scale}_art{art_noise_pos}_{art_noise_yaw}_lid{lidar_noise_perc}'
+file_basename = f'ds{dataset}_N{N}_Nt{N_threshold}_res{res_scale}_art{art_noise_pos}_{art_noise_yaw}_lid{lidar_noise_perc}_corr{corr_scale}'
 
 particles = np.zeros((N, 3))
 weight = np.einsum('..., ...', 1.0 / N, np.ones((N, 1)))
@@ -82,8 +83,8 @@ factor = np.array([art_noise_pos, art_noise_pos, art_noise_yaw])
 x_im = np.arange(mapfig['xmin'], mapfig['xmax'] + mapfig['res'], mapfig['res'])  # x-positions of each pixel of the map
 y_im = np.arange(mapfig['ymin'], mapfig['ymax'] + mapfig['res'], mapfig['res'])  # y-positions of each pixel of the map
 
-x_range = np.arange(-0.05, 0.06, 0.05)
-y_range = np.arange(-0.05, 0.06, 0.05)
+x_range = np.arange(-0.05, 0.06, 0.05) / corr_scale
+y_range = np.arange(-0.05, 0.06, 0.05) / corr_scale
 
 
 """
